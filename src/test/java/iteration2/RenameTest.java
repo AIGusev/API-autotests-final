@@ -64,5 +64,15 @@ public class RenameTest {
                 .then()
                 .assertThat()
                 .statusCode(200);
+
+        given()
+                .contentType(ContentType.JSON)
+                .header("Authorization", userAuthHeader)
+                .when()
+                .get("http://localhost:4111/api/v1/customer/profile")
+                .then()
+                .assertThat()
+                .statusCode(200)
+                .body("name", org.hamcrest.Matchers.equalTo("Artem Gusev"));
     }
 }
