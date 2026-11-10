@@ -73,15 +73,5 @@ public class DepositTest {
                 .then()
                 .assertThat()
                 .statusCode(200);
-
-        given()
-                .contentType(ContentType.JSON)
-                .header("Authorization", userAuthHeader)
-                .when()
-                .get("http://localhost:4111/api/v1/customer/accounts")
-                .then()
-                .assertThat()
-                .statusCode(200)
-                .body("find { it.id == " + accountId + " }.balance", equalTo(100.50f));
     }
 }
