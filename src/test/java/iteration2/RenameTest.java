@@ -1,78 +1,33 @@
 package iteration2;
 
-import io.restassured.RestAssured;
-import io.restassured.filter.log.RequestLoggingFilter;
-import io.restassured.filter.log.ResponseLoggingFilter;
-import io.restassured.http.ContentType;
-import org.junit.jupiter.api.BeforeAll;
+import generators.RandomData;
+import models.*;
 import org.junit.jupiter.api.Test;
+import requests.*;
+import specs.RequestSpecs;
+import specs.ResponseSpecs;
 
-import static io.restassured.RestAssured.given;
-
-public class RenameTest {
-    private static String userAuthHeader;
-
-
-    @BeforeAll
-    public static void setup() {
-
-        RestAssured.filters(new RequestLoggingFilter(), new ResponseLoggingFilter());
-        //создаем пользака
-        given()
-                .contentType(ContentType.JSON)
-                .header("Authorization", "Basic YWRtaW46YWRtaW4=")
-                .body("""
-                        {
-                          "username": "Arseniy145",
-                          "password": "Pavelpavel1#",
-                          "role": "USER"
-                        }
-                        """)
-                .post("http://localhost:4111/api/v1/admin/users")
-                .then()
-                .assertThat()
-                .statusCode(201);
-
-        //логинимся и берем его токен
-        userAuthHeader = given()
-                .contentType(ContentType.JSON)
-                .body("""
-                        {
-                          "username": "Arseniy145",
-                          "password": "Pavelpavel1#"
-                        }
-                        """)
-                .post("http://localhost:4111/api/v1/auth/login")
-                .then()
-                .assertThat()
-                .statusCode(200)
-                .extract()
-                .header("Authorization");
-    }
+public class RenameTest extends BaseTest {
 
     @Test
     public void renameTest() {
-        given()
-                .contentType(ContentType.JSON)
-                .header("Authorization", userAuthHeader)
-                .body("""
-                        {
-                          "name": "Artem Gusev"
-                        }
-                        """)
-                .put("http://localhost:4111/api/v1/customer/profile")
-                .then()
-                .assertThat()
-                .statusCode(200);
+        // 1. Создаем юзера
+        CreateUserRequest userRequest = CreateUserRequest.builder()
+                .username(RandomData.getUsername())
+                .password(RandomData.getPassword())
+                .role(UserRole.USER.toString())
+                .build();
+        new AdminCreateUserRequester(RequestSpecs.adminSpec(), ResponseSpecs.entityWasCreated()).post(userRequest);
 
-        given()
-                .contentType(ContentType.JSON)
-                .header("Authorization", userAuthHeader)
-                .when()
-                .get("http://localhost:4111/api/v1/customer/profile")
-                .then()
-                .assertThat()
-                .statusCode(200)
-                .body("name", org.hamcrest.Matchers.equalTo("Artem Gusev"));
+        // 2. Меняем имя
+        RenameRequest renameRequest = RenameRequest.builder().name("Artem Gusev").build();
+        RenameResponse renameResponse = new RenameRequester(
+                RequestSpecs.authAsUser(userRequest.getUsername(), userRequest.getPassword()),
+                ResponseSpecs.requestReturnsOK())
+                .post(renameRequest)
+                .extract().as(RenameResponse.class);
+
+        // 3. Проверка
+        softly.assertThat(renameResponse.getName()).isEqualTo("Artem Gusev");
     }
 }
