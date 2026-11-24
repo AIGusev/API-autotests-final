@@ -1,87 +1,49 @@
 package iteration2;
 
-import io.restassured.http.ContentType;
-import org.junit.jupiter.api.BeforeAll;
+import generators.RandomData;
+import models.*;
 import org.junit.jupiter.api.Test;
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.equalTo;
+import requests.AdminCreateUserRequester;
+import requests.CreateAccountRequester;
+import requests.DepositRequester;
+import specs.RequestSpecs;
+import specs.ResponseSpecs;
 
-public class DepositTest {
-
-    private static String userAuthHeader;
-    private static int accountId;
-
-    @BeforeAll
-    public static void setup() {
-        //создаем пользака
-        given()
-                .contentType(ContentType.JSON)
-                .header("Authorization", "Basic YWRtaW46YWRtaW4=")
-                .body("""
-                        {
-                          "username": "victor945",
-                          "password": "Kate2000#",
-                          "role": "USER"
-                        }
-                        """)
-                .post("http://localhost:4111/api/v1/admin/users")
-                .then()
-                .assertThat()
-                .statusCode(201);
-
-        //логинимся и берем его токен
-        userAuthHeader = given()
-                .contentType(ContentType.JSON)
-                .body("""
-                        {
-                          "username": "victor945",
-                          "password": "Kate2000#"
-                        }
-                        """)
-                .post("http://localhost:4111/api/v1/auth/login")
-                .then()
-                .assertThat()
-                .statusCode(200)
-                .extract()
-                .header("Authorization");
-
-        //создаем аккаунт
-        accountId = given()
-                .header("Authorization", userAuthHeader)
-                .contentType(ContentType.JSON)
-                .accept(ContentType.JSON)
-                .post("http://localhost:4111/api/v1/accounts")
-                .then()
-                .assertThat()
-                .statusCode(201)
-                .extract()
-                .path("id");
-    }
+public class DepositTest extends BaseTest {
 
     @Test
-    public void userCanDepositMoneyTest() {
-        given()
-                .contentType(ContentType.JSON)
-                .header("Authorization", userAuthHeader)
-                .body("""
-                        {
-                          "id": %d,
-                          "balance": 100.50
-                        }
-                        """.formatted(accountId))
-                .post("http://localhost:4111/api/v1/accounts/deposit")
-                .then()
-                .assertThat()
-                .statusCode(200);
+    public void depositTest() {
 
-        given()
-                .contentType(ContentType.JSON)
-                .header("Authorization", userAuthHeader)
-                .when()
-                .get("http://localhost:4111/api/v1/customer/accounts")
-                .then()
-                .assertThat()
-                .statusCode(200)
-                .body("find { it.id == " + accountId + " }.balance", equalTo(100.50f));
+        CreateUserRequest userRequest = CreateUserRequest.builder()
+                .username(RandomData.getUsername())
+                .password(RandomData.getPassword())
+                .role(UserRole.USER.toString())
+                .build();
+
+        new AdminCreateUserRequester(
+                RequestSpecs.adminSpec(),
+                ResponseSpecs.entityWasCreated())
+                .post(userRequest);
+
+        AccountResponse accountResponse = new CreateAccountRequester(
+                RequestSpecs.authAsUser(userRequest.getUsername(), userRequest.getPassword()),
+                ResponseSpecs.entityWasCreated())
+                .post()
+                .extract().as(AccountResponse.class);
+
+        double amount = RandomData.getValidAmount();
+
+        DepositRequest depositRequest = DepositRequest.builder()
+                .id(accountResponse.getId())
+                .balance(amount)
+                .build();
+
+        DepositResponse depositResponse = new DepositRequester(
+                RequestSpecs.authAsUser(userRequest.getUsername(), userRequest.getPassword()),
+                ResponseSpecs.requestReturnsOK())
+                .post(depositRequest)
+                .extract().as(DepositResponse.class);
+
+        softly.assertThat(depositResponse.getBalance()).isEqualTo(amount);
     }
 }
