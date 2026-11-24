@@ -28,7 +28,7 @@ public class RequestSpecs {
 
     public static RequestSpecification adminSpec() {
         return defaultRequestBuilder()
-                .addHeader("Authorization", "Basic YWRtaW46YWRtaW4=")
+                .addHeader(AuthConstants.HEADER_AUTHORIZATION, AuthConstants.BASIC_ADMIN_AUTH)
                 .build();
     }
 
@@ -38,10 +38,10 @@ public class RequestSpecs {
                 ResponseSpecs.requestReturnsOK())
                 .post(LoginUserRequest.builder().username(username).password(password).build())
                 .extract()
-                .header("Authorization");
+                .header(AuthConstants.HEADER_AUTHORIZATION);
 
         return defaultRequestBuilder()
-                .addHeader("Authorization", userAuthHeader)
+                .addHeader(AuthConstants.HEADER_AUTHORIZATION, userAuthHeader)
                 .build();
     }
 }

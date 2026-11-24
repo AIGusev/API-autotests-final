@@ -22,17 +22,19 @@ public class TransferTest extends BaseTest {
         // 2. Создаем два счета
         AccountResponse sender = new CreateAccountRequester(
                 RequestSpecs.authAsUser(userRequest.getUsername(), userRequest.getPassword()),
-                ResponseSpecs.entityWasCreated()).post(null).extract().as(AccountResponse.class);
+                ResponseSpecs.entityWasCreated()).post().extract().as(AccountResponse.class);
 
         AccountResponse receiver = new CreateAccountRequester(
                 RequestSpecs.authAsUser(userRequest.getUsername(), userRequest.getPassword()),
-                ResponseSpecs.entityWasCreated()).post(null).extract().as(AccountResponse.class);
+                ResponseSpecs.entityWasCreated()).post().extract().as(AccountResponse.class);
+
+        double amount = RandomData.getValidAmount();
 
         // 3. Перевод
         TransferRequest transferRequest = TransferRequest.builder()
                 .senderAccountId(sender.getId())
                 .receiverAccountId(receiver.getId())
-                .amount(50.00)
+                .amount(amount)
                 .build();
 
         TransferResponse transferResponse = new TransferRequester(
@@ -42,6 +44,6 @@ public class TransferTest extends BaseTest {
                 .extract().as(TransferResponse.class);
 
         // 4. Проверка
-        softly.assertThat(transferResponse.getAmount()).isEqualTo(50.00);
+        softly.assertThat(transferResponse.getAmount()).isEqualTo(amount);
     }
 }

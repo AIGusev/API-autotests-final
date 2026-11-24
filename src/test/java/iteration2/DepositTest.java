@@ -28,12 +28,14 @@ public class DepositTest extends BaseTest {
         AccountResponse accountResponse = new CreateAccountRequester(
                 RequestSpecs.authAsUser(userRequest.getUsername(), userRequest.getPassword()),
                 ResponseSpecs.entityWasCreated())
-                .post(null)
+                .post()
                 .extract().as(AccountResponse.class);
+
+        double amount = RandomData.getValidAmount();
 
         DepositRequest depositRequest = DepositRequest.builder()
                 .id(accountResponse.getId())
-                .balance(100.50)
+                .balance(amount)
                 .build();
 
         DepositResponse depositResponse = new DepositRequester(
@@ -42,6 +44,6 @@ public class DepositTest extends BaseTest {
                 .post(depositRequest)
                 .extract().as(DepositResponse.class);
 
-        softly.assertThat(depositResponse.getBalance()).isEqualTo(100.50);
+        softly.assertThat(depositResponse.getBalance()).isEqualTo(amount);
     }
 }
